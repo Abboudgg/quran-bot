@@ -3,6 +3,11 @@ const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerSta
 const play = require('play-dl'); 
 require('dotenv').config();
 
+// تعيين مفتاح الـ API الخاص بيوتيوب لتجنب الحظر
+if (process.env.YOUTUBE_API) {
+  play.setApiKey(process.env.YOUTUBE_API);
+}
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds, 
@@ -25,7 +30,7 @@ app.get('/', (req, res) => {
 
 const channelId = '1571122362839990324';
 const guildId = '1571120459775352925'; 
-const Url = 'https://youtu.be/mQ70kbDmsKA';
+const Url = 'https://youtu.be/mQ70kbDmsKA'; // الرابط المسجل المستقر
 
 client.once('ready', async () => {
   console.log(`✅ | Logged in as ${client.user.tag}`);
