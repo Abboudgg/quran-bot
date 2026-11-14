@@ -109,9 +109,9 @@ client.on('interactionCreate', async interaction => {
       guildConnection.destroy();
       await interaction.reply({ content: '👋 تم إيقاف البث والخروج من الروم بنجاح.' });
     } else {
-      await interaction.reply({ content: '❌ البوت مو بروم صوتي أصلاً.', ephemeral=True });
+      await interaction.reply({ content: '❌ البوت مو بروم صوتي أصلاً.', ephemeral: true });
     }
   }
 });
 
-client.login(process.TOKEN);
+client.login(process.env.TOKEN);
