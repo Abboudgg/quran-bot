@@ -35,4 +35,106 @@ ATHKAR = [
     "سبحان الله وبحمده، سبحان الله العظيم",
     "لا إله إلا أنت سبحانك إني كنت من الظالمين",
     "استغفر الله العظيم واتوب إليه",
-    "لا حول ولا قوة إلا بالله العلي
+    "لا حول ولا قوة إلا بالله العلي العظيم"
+]
+
+@app.route('/')
+def home():
+    channels = [{'id': c.id, 'name': f"{g.name} ➔ #{c.name}"} for g in bot.guilds for c in g.text_channels]
+    return render_template_string(HTML, channels=channels)
+
+@app.route('/send', methods=['POST'])
+def send():
+    cid, msg = int(request.form.get('cid')), request.form.get('msg')
+    asyncio.run_coroutine_threadsafe(bot.get_channel(cid).send(f"📢 **تنبيه من لوحة التحكم:**\n{msg}"), bot.loop)
+    return home()
+
+@bot.event
+async def on_ready():
+    await bot.change_presence(activity=discord.Streaming(name="بث مباشر على Kick", url="https://www.kick.com/cass-sa"))
+    if not athkar_loop.is_running(): athkar_loop.start()
+
+@tasks.loop(hours=1)
+async def athkar_loop():
+    c = bot.get_channel(1571122362839990324)
+    if c: await c.send(f"🤖 **تذكرة أذكار:**\n{random.choice(ATHKAR)}")
+
+# --- أوامر الاختبار الجديدة ---
+@bot.tree.command(name="test", description="اختبار استجابة البوت (بينغ)")
+async def test_bot(i: discord.Interaction):
+    await i.response.send_message("🏓 البوت شغال وبأفضل شكل يا عبد الله!", ephemeral=True)
+
+@bot.tree.command(name="testin", description="أمر يجعل البوت يدخل إلى الروم الصوتي معك")
+async def test_in(i: discord.Interaction):
+    if not i.user.voice:
+        return await i.response.send_message("❌ يجب أن تدخل إلى روم صوتي أولاً!", ephemeral=True)
+    
+    voice_channel = i.user.voice.channel
+    guild = i.guild
+
+    if guild.voice_client is None:
+        await voice_channel.connect()
+    elif guild.voice_client.channel != voice_channel:
+        await guild.voice_client.move_to(voice_channel)
+        
+    await i.response.send_message(f"✅ تم دخول البوت إلى روم: **{voice_channel.name}** بنجاح!", ephemeral=True)
+
+@bot.tree.command(name="شغل", description="تشغيل أي سورة بالاسم مع الشيخ مباشرة")
+@app_commands.describe(surah="اكتب اسم السورة (مثل: الملك، الكهف، البقرة)", sheikh="اكتب اسم الشيخ (مثل: ياسر الدوسري، العفاسي)")
+async def play(i: discord.Interaction, surah: str, sheikh: str):
+    if not i.user.voice:
+        return await i.response.send_message("❌ يجب الدخول لروم صوتي أولاً!", ephemeral=True)
+    
+    await i.response.send_message(f"🔍 جاري البحث عن **سورة {surah}** بصوت **{sheikh}**...", ephemeral=False)
+
+    try:
+        voice_channel = i.user.voice.channel
+        guild = i.guild
+
+        if guild.voice_client is None:
+            vc = await voice_channel.connect()
+        elif guild.voice_client.channel != voice_channel:
+            await guild.voice_client.move_to(voice_channel)
+            vc = guild.voice_client
+        else:
+            vc = guild.voice_client
+
+        if vc.is_playing():
+            vc.stop()
+
+        query = f"سورة {surah} القارئ {sheikh} قران كريم"
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'noplaylist': True,
+            'default_search': 'ytsearch1',
+            'quiet': True
+        }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(query, download=False)
+            if 'entries' in info:
+                info = info['entries'][0]
+            url = info['url']
+            title = info['title']
+
+        ffmpeg_options = {
+            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+            'options': '-vn'
+        }
+
+        vc.play(discord.FFmpegPCMAudio(url, **ffmpeg_options))
+        await i.followup.send(f"🎧 **يتم الآن تشغيل:** {title}")
+
+    except Exception as e:
+        await i.followup.send("❌ حدث خطأ أثناء التشغيل، تأكد من كتابة اسم السورة والشيخ بشكل صحيح.")
+        print(e)
+
+@bot.tree.command(name="اطلع", description="إيقاف التلاوة والخروج من الروم الصوتي")
+async def leave(i: discord.Interaction):
+    if i.guild.voice_client:
+        await i.guild.voice_client.disconnect()
+        await i.response.send_message("👋 تم إيقاف التلاوة والخروج بنجاح.")
+    else: await i.response.send_message("❌ البوت ليس في أي روم صوتي حالياً.", ephemeral=True)
+
+Thread(target=lambda: app.run(host='0.0.0.0', port=8080)).start()
+bot.run(os.environ.get('TOKEN'))
