@@ -1,4 +1,6 @@
-discord.py[voice]
+discord.py
 yt-dlp
-PyNaCl
 requests
+Flask
+PyNaCl
+
