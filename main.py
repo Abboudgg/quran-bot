@@ -194,4 +194,35 @@ async def play_quran(interaction: discord.Interaction, search: str):
     elif guild.voice_client.channel != voice_channel:
         await guild.voice_client.move_to(voice_channel)
 
-    if guild
+    if guild.voice_client.is_playing():
+        guild.voice_client.stop()
+
+    await interaction.response.send_message(f"🔍 جاري البحث عن التلاوة: **{search}**...")
+
+    try:
+        query = f"قرآن كريم {search}"
+        with yt_dlp.YoutubeDL(YDL_OPTIONS) as ydl:
+            info = ydl.extract_info(query, download=False)
+            if 'entries' in info:
+                info = info['entries'][0]
+            url = info['url']
+            title = info['title']
+
+        source = discord.FFmpegPCMAudio(url, **FFMPEG_OPTIONS)
+        guild.voice_client.play(source)
+        await interaction.followup.send(f"🎧 **يتم الآن تشغيل:** {title}")
+
+    except Exception as e:
+        await interaction.followup.send("❌ حدث خطأ أثناء تشغيل التلاوة.")
+        print(e)
+
+@bot.tree.command(name="اطلع", description="إيقاف التلاوة وخروج البوت من الروم الصوتي")
+async def leave_voice(interaction: discord.Interaction):
+    if interaction.guild.voice_client:
+        await interaction.guild.voice_client.disconnect()
+        await interaction.response.send_message("👋 تم إيقاف التلاوة والخروج من الروم الصوتي.")
+    else:
+        await interaction.response.send_message("❌ البوت ليس في أي روم صوتي حالياً.", ephemeral=True)
+
+keep_alive()
+bot.run(os.environ.get('TOKEN'))
