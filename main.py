@@ -80,7 +80,7 @@ async def test_in(i: discord.Interaction):
         await vc.move_to(vchan)
     await i.followup.send(f"✅ دخلت الروم: **{vchan.name}** بنجاح!", ephemeral=True)
 
-@bot.tree.command(name="اذاعة", description="تشغيل بث إذاعة القرآن الكريم السعودية المباشر مع بار تحميل")
+@bot.tree.command(name="اذاعة", description="تشغيل إذاعة القرآن الكريم (الشيخ ياسر الدوسري) مع بار تحميل")
 async def radio(i: discord.Interaction):
     if not i.user.voice:
         return await i.response.send_message("❌ يجب الدخول لروم صوتي أولاً!", ephemeral=True)
@@ -104,19 +104,19 @@ async def radio(i: discord.Interaction):
         if vc.is_playing():
             vc.stop()
 
-        await msg.edit(content="🎵 `[████████░░] 80%` - جاري ربط بث الإذاعة الرسمية...")
+        await msg.edit(content="🎵 `[████████░░] 80%` - جاري ربط بث إذاعة الشيخ ياسر الدوسري...")
         
-        radio_url = "https://radioplus.sba.sa/live/4"
+        # رابط إذاعة القرآن الكريم المباشر للشيخ ياسر الدوسري
+        radio_url = "https://backup.qurango.net/radio/yasser_aldosari"
 
-        # خيارات متقدمة ومحدثة لتجاوز حماية الروابط المباشرة وبثها بسلاسة تامة
         audio_source = discord.FFmpegPCMAudio(
             radio_url, 
-            before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -user_agent "Mozilla/5.0"', 
-            options='-vn -b:a 128k'
+            before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 
+            options='-vn'
         )
         
         vc.play(audio_source)
-        await msg.edit(content="✅ `[██████████] 100%` - **تم تشغيل إذاعة القرآن الكريم (السعودية) بنجاح!** 📻🎧")
+        await msg.edit(content="✅ `[██████████] 100%` - **تم تشغيل إذاعة الشيخ ياسر الدوسري بنجاح!** 📻🎧")
 
     except Exception as e:
         await msg.edit(content="❌ حدث خطأ أثناء تشغيل الإذاعة.")
