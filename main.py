@@ -76,13 +76,13 @@ async def test_in(i: discord.Interaction):
         await vc.move_to(vchan)
     await i.response.send_message(f"✅ دخلت الروم: **{vchan.name}** بنجاح!", ephemeral=True)
 
-@bot.tree.command(name="شغل", description="تشغيل التلاوة بالصوت بدقة")
-@app_commands.describe(surah="اسم السورة", sheikh="اسم الشيخ")
+@bot.tree.command(name="شغل", description="تشغيل تلاوة القرآن الكريم بالصوت")
+@app_commands.describe(surah="اسم السورة (مثل: الملك)", sheikh="اسم الشيخ (مثل: ياسر الدوسري)")
 async def play(i: discord.Interaction, surah: str, sheikh: str):
     if not i.user.voice:
         return await i.response.send_message("❌ ادخل روم صوتي أولاً!", ephemeral=True)
     
-    await i.response.send_message(f"🔍 جاري البحث والتحضير لتلاوة **سورة {surah}** بصوت **{sheikh}**...", ephemeral=False)
+    await i.response.send_message(f"🔍 جاري البحث والتحضير لتلاوة **سورة {surah}** بصوت الشيخ **{sheikh}**...", ephemeral=False)
 
     try:
         vchan = i.user.voice.channel
@@ -97,10 +97,10 @@ async def play(i: discord.Interaction, surah: str, sheikh: str):
             vc.stop()
 
         ydl_opts = {
-            'format': 'bestaudio',
+            'format': 'bestaudio/best',
             'default_search': 'ytsearch1',
             'quiet': True,
-            'cookiefile': None
+            'noplaylist': True,
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -112,23 +112,22 @@ async def play(i: discord.Interaction, surah: str, sheikh: str):
 
         audio_source = discord.FFmpegPCMAudio(
             url, 
-            executable="ffmpeg",
             before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 
             options='-vn'
         )
         
         vc.play(audio_source)
-        await i.followup.send(f"🎧 **تم التشغيل بنجاح:** {title}")
+        await i.followup.send(f"🎧 **تم بدء التشغيل بنجاح:** {title}")
 
     except Exception as e:
-        await i.followup.send("❌ صار خطأ في التشغيل، جرب تستخدم أمر /testin أولاً ثم /شغل.")
-        print(f"Error: {e}")
+        await i.followup.send("❌ حدث خطأ أثناء التشغيل. تأكد من إدخال اسم سورة وشيخ صحيحين.")
+        print(f"Audio Error: {e}")
 
 @bot.tree.command(name="اطلع", description="إيقاف التلاوة والخروج")
 async def leave(i: discord.Interaction):
     if i.guild.voice_client:
         await i.guild.voice_client.disconnect()
-        await i.response.send_message("👋 تم الخروج.")
+        await i.response.send_message("👋 تم الخروج وإيقاف الصوت.")
     else:
         await i.response.send_message("❌ البوت مو بروم صوتي.", ephemeral=True)
 
