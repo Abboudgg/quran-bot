@@ -5,12 +5,11 @@ import requests
 import asyncio
 import os
 import random
-from flask import Flask, render_template_string, request, redirect, url_for
+from flask import Flask, render_template_string, request
 from threading import Thread
 
 app = Flask('')
 
-# حافظنا على التصميم الفخم وضفنا خانة لاختيار الروم والرسالة
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -19,9 +18,40 @@ HTML_TEMPLATE = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة تحكم بوت ديسكورد</title>
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: Tahoma, sans-serif; text-align: center; padding: 30px 20px; }
-        .card { background-color: #1e293b; border-radius: 15px; padding: 25px; max-width: 450px; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-align: right; }
-        h1 { color: #38bdf8; font-size: 20px; text-align: center; }
+        body { 
+            background: linear-gradient(135deg, #450a0a 0%, #1e1b4b 100%); 
+            color: #f8fafc; 
+            font-family: Tahoma, sans-serif; 
+            text-align: center; 
+            padding: 30px 20px; 
+            margin: 0;
+            min-height: 100vh;
+        }
+        .card { 
+            background-color: rgba(30, 41, 59, 0.85); 
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px; 
+            padding: 25px; 
+            max-width: 450px; 
+            margin: 0 auto; 
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6); 
+            text-align: right; 
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .logo {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #38bdf8;
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4);
+            background-color: #fff;
+        }
+        h1 { color: #38bdf8; font-size: 20px; text-align: center; margin-top: 10px; }
         p { color: #94a3b8; font-size: 14px; }
         .status { display: inline-block; width: 10px; height: 10px; background-color: #22c55e; border-radius: 50%; margin-left: 5px; }
         .form-group { margin-bottom: 15px; }
@@ -36,6 +66,9 @@ HTML_TEMPLATE = """
 </head>
 <body>
     <div class="card">
+        <div class="logo-container">
+            <img src="data:image/jpeg;base64,{{ logo_base64 }}" alt="شعار كاس" class="logo">
+        </div>
         <h1>🤖 لوحة تحكم بوت ديسكورد</h1>
         <p style="text-align: center;">حالة البوت: <span class="status"></span> <strong style="color: #22c55e;">متصل ويدير السيرفر 24/7</strong></p>
         <hr style="border: 0; border-top: 1px solid #334155; margin: 15px 0;">
@@ -56,7 +89,7 @@ HTML_TEMPLATE = """
 
             <div class="form-group">
                 <label for="message">الرسالة المراد إرسالها:</label>
-                <textarea name="message" id="message" rows="3" placeholder="اكتب رسالتك هنا أو اتركها للأذكار..." required>سبحان الله وبحمده، سبحان الله العظيم 🌿</textarea>
+                <textarea name="message" id="message" rows="3" placeholder="اكتب رسالتك هنا..." required>سبحان الله وبحمده، سبحان الله العظيم 🌿</textarea>
             </div>
 
             <button type="submit" class="btn">🚀 إرسال إلى ديسكورد</button>
@@ -88,81 +121,4 @@ FFMPEG_OPTIONS = {
 }
 
 ATHKAR_LIST = [
-    "سبحان الله وبحمده، سبحان الله العظيم 🌿",
-    "لا إله إلا أنت سبحانك إني كنت من الظالمين 🤍",
-    "استغفر الله العظيم واتوب إليه 🌙",
-    "لا حول ولا قوة إلا بالله العلي العظيم ✨",
-    "اللهم صل وسلم على نبينا محمد وعلى آله وصحبه أجمعين 🌹"
-]
-
-@app.route('/')
-def home():
-    channels = []
-    for guild in bot.guilds:
-        for channel in guild.text_channels:
-            channels.append({'id': channel.id, 'name': f"{guild.name} ➔ #{channel.name}"})
-    return render_template_string(HTML_TEMPLATE, channels=channels, sent=False)
-
-@app.route('/send', methods=['POST'])
-def send_message():
-    channel_id = int(request.form.get('channel_id'))
-    message = request.form.get('message')
-    
-    # إرسال الرسالة عبر البوت باستخدام حلقة الحدث
-    future = asyncio.run_coroutine_threadsafe(send_discord_message(channel_id, message), bot.loop)
-    try:
-        future.result(timeout=5)
-    except Exception as e:
-        print(f"خطأ في الإرسال: {e}")
-
-    channels = []
-    for guild in bot.guilds:
-        for channel in guild.text_channels:
-            channels.append({'id': channel.id, 'name': f"{guild.name} ➔ #{channel.name}"})
-            
-    return render_template_string(HTML_TEMPLATE, channels=channels, sent=True)
-
-async def send_discord_message(channel_id, message):
-    channel = bot.get_channel(channel_id)
-    if channel:
-        await channel.send(f"📢 **رسالة من لوحة التحكم:**\n{message}")
-
-def run():
-    app.run(host='0.0.0.0', port=8080)
-
-def keep_alive():
-    t = Thread(target=run)
-    t.start()
-
-@bot.event
-async def on_ready():
-    print(f'تم تشغيل البوت بنجاح: {bot.user.name}')
-    activity = discord.Streaming(name="بث مباشر على Kick", url="https://www.kick.com/cass-sa")
-    await bot.change_presence(activity=activity)
-    if not send_athkar_loop.is_running():
-        send_athkar_loop.start()
-
-@tasks.loop(hours=1)
-async def send_athkar_loop():
-    for guild in bot.guilds:
-        target_channel = None
-        for channel in guild.text_channels:
-            if channel.permissions_for(guild.me).send_messages:
-                target_channel = channel
-                break
-        
-        if target_channel:
-            athkar = random.choice(ATHKAR_LIST)
-            await target_channel.send(f"🤖 **تذكرة أذكار:**\n{athkar}")
-
-@bot.command(name='شغل', aliases=['تشغيل', 'play'])
-async def play_quran(ctx, *, search: str):
-    if not ctx.author.voice:
-        await ctx.send("❌ يجب أن تدخل إلى روم صوتي أولاً!")
-        return
-    voice_channel = ctx.author.voice.channel
-    if ctx.voice_client is None:
-        await voice_channel.connect()
-    elif ctx.voice_client.channel != voice_channel:
-        await ctx.voice_client.move_to(voice_channel)
-    if ctx.voice_client.is_playing():
+    "سبحان الله وبحمده، سبحان الله
