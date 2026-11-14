@@ -1,71 +1,77 @@
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
 const play = require('play-dl'); 
 require('dotenv').config();
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
+  intents: [
+    GatewayIntentBits.Guilds, 
+    GatewayIntentBits.GuildVoiceStates, 
+    GatewayIntentBits.GuildMessages, 
+    GatewayIntentBits.MessageContent
+  ]
 });
-const express = require("express")
+
+// إعداد سيرفر الويب لعمل البوت 24 ساعة على Render
+const express = require("express");
 const app = express();
-var listener = app.listen(process.env.PORT || 2000, function () {
-  console.log('Your app is listening on port ' + listener.address().port);
+const PORT = process.env.PORT || 2000;
+app.listen(PORT, () => {
+  console.log(`Your app is listening on port ${PORT}`);
 });
-app.listen(() => console.log("I'm Ready To Work..! 24H"));
 app.get('/', (req, res) => {
-  res.send(`
-  <body>
-  <center><h1>Bot 24H ON!</h1></center
-  </body>`)
+  res.send('<body><center><h1>Bot 24H ON!</h1></center></body>');
 });
+
 const channelId = '1571122362839990324';
 const guildId = '1571120459775352925'; 
-const Url = 'https://youtu.be/fLkdQeeRtYs?si=02zwuFdQbytcD09f'; 
+const Url = 'https://youtu.be/fLkdQeeRtYs'; 
 
-client.on('ready', () => {
+client.once('ready', async () => {
   console.log(`✅ | Logged in as ${client.user.tag}`);
-  joinAndPlayQuran(guildId, channelId);
+  try {
+    await joinAndPlayQuran(guildId, channelId);
+  } catch (err) {
+    console.error("❌ Error in ready voice connection:", err);
+  }
 });
 
-async function playQuran(channel, message) {
-  const player = createAudioPlayer();
-  const connection = joinVoiceChannel({
-    channelId: channel.id,
-    guildId: channel.guild.id,
-    adapterCreator: channel.guild.voiceAdapterCreator,
-  });
-
-  connection.subscribe(player);
-
-  const stream = await play.stream(Url);
-  const resource = createAudioResource(stream.stream, { inputType: stream.type });
-  player.play(resource);
-
-  player.on(AudioPlayerStatus.Playing, () => {
-    message.channel.send({ embeds: [new EmbedBuilder().setDescription('**تم تشغيل القرآن**').setColor(0x00ff00)] });
-  });
-
-  player.on('error', error => console.error(`Error: ${error.message}`));
-}
-
 async function joinAndPlayQuran(guildId, channelId) {
-  const channel = await client.channels.fetch(channelId);
-  const connection = joinVoiceChannel({
-    channelId: channel.id,
-    guildId: guildId,
-    adapterCreator: channel.guild.voiceAdapterCreator,
-  });
+  try {
+    const guild = await client.guilds.fetch(guildId);
+    const channel = await guild.channels.fetch(channelId);
+    
+    if (!channel) {
+      console.log("❌ Voice channel not found!");
+      return;
+    }
 
-  const player = createAudioPlayer();
+    const connection = joinVoiceChannel({
+      channelId: channel.id,
+      guildId: guildId,
+      adapterCreator: guild.voiceAdapterCreator,
+    });
 
-  const stream = await play.stream(Url);
-  const resource = createAudioResource(stream.stream, { inputType: stream.type });
+    const player = createAudioPlayer();
+    
+    console.log('🔄 Fetching stream from YouTube...');
+    const stream = await play.stream(Url);
+    const resource = createAudioResource(stream.stream, { inputType: stream.type });
 
-  player.play(resource);
-  connection.subscribe(player);
+    player.play(resource);
+    connection.subscribe(player);
 
-  player.on(AudioPlayerStatus.Playing, () => console.log('Playing Quran'));
-  player.on('error', error => console.error(`Error: ${error.message}`));
+    player.on(AudioPlayerStatus.Playing, () => {
+      console.log('▶️ Playing Quran successfully!');
+    });
+
+    player.on('error', error => {
+      console.error(`⚠️ Audio Player Error: ${error.message}`);
+    });
+
+  } catch (error) {
+    console.error(`❌ Failed to join or play: ${error.message}`);
+  }
 }
 
 client.login(process.env.TOKEN);
