@@ -1,122 +1,71 @@
-const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require('discord.js');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
+const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus } = require('@discordjs/voice');
+const play = require('play-dl'); 
 require('dotenv').config();
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds, 
-    GatewayIntentBits.GuildVoiceStates, 
-    GatewayIntentBits.GuildMessages, 
-    GatewayIntentBits.MessageContent
-  ]
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 });
-
-// إعداد سيرفر الويب لضمان عمل البوت 24 ساعة على Render
-const express = require("express");
+const express = require("express")
 const app = express();
-
+var listener = app.listen(process.env.PORT || 2000, function () {
+  console.log('Your app is listening on port ' + listener.address().port);
+});
+app.listen(() => console.log("I'm Ready To Work..! 24H"));
 app.get('/', (req, res) => {
-  res.send('<body><center><h1>Bot 24H ON!</h1></center></body>');
+  res.send(`
+  <body>
+  <center><h1>Bot 24H ON!</h1></center
+  </body>`)
 });
+const channelId = '1571122362839990324';
+const guildId = '1571120459775352925'; 
+const Url = 'https://youtu.be/fLkdQeeRtYs?si=02zwuFdQbytcD09f'; 
 
-const PORT = process.env.PORT || 2000;
-app.listen(PORT, () => {
-  console.log(`Your app is listening on port ${PORT}`);
-});
-
-// رابط إذاعة مستقر وثابت لضمان عدم توقف البث
-const radioUrl = 'https://www.youtube.com/live/IsJTAdC3-Jw?si=t0h9iibDhuAut184'; 
-
-const ATHKAR = [
-  "✨ **سبحان الله وبحمده، سبحان الله العظيم**",
-  "✨ **لا إله إلا أنت سبحانك إني كنت من الظالمين**",
-  "✨ **استغفر الله العظيم واتوب إليه**",
-  "✨ **لا حول ولا قوة إلا بالله العلي العظيم**",
-  "✨ **اللهم صل وسلم على نبينا محمد**",
-  "✨ **لا إله إلا الله وحدَهُ لا شريك له، له الملك وله الحمد وهو على كل شيء قدير**"
-];
-
-// تسجيل الأوامر (Slash Commands)
-const commands = [
-  new SlashCommandBuilder().setName('اذاعة').setDescription('تشغيل إذاعة القرآن الكريم (الشيخ ياسر الدوسري) في رومك الصوتي'),
-  new SlashCommandBuilder().setName('اذكار').setDescription('إرسال ذكر مبارك في الشات'),
-  new SlashCommandBuilder().setName('اطلع').setDescription('إيقاف البث والخروج من الروم الصوتي')
-].map(command => command.toJSON());
-
-client.once('ready', async () => {
+client.on('ready', () => {
   console.log(`✅ | Logged in as ${client.user.tag}`);
-  
-  // تسجيل الأوامر في سيرفرات البوت تلقائياً
-  const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
-  try {
-    console.log('Started refreshing application (/) commands.');
-    await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
-    console.log('Successfully reloaded application (/) commands.');
-  } catch (error) {
-    console.error(error);
-  }
+  joinAndPlayQuran(guildId, channelId);
 });
 
-// التفاعل مع الأوامر
-client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
+async function playQuran(channel, message) {
+  const player = createAudioPlayer();
+  const connection = joinVoiceChannel({
+    channelId: channel.id,
+    guildId: channel.guild.id,
+    adapterCreator: channel.guild.voiceAdapterCreator,
+  });
 
-  const { commandName } = interaction;
+  connection.subscribe(player);
 
-  if (commandName === 'اذاعة') {
-    if (!interaction.member.voice.channel) {
-      return interaction.reply({ content: '❌ يجب الدخول لروم صوتي أولاً!', ephemeral: true });
-    }
+  const stream = await play.stream(Url);
+  const resource = createAudioResource(stream.stream, { inputType: stream.type });
+  player.play(resource);
 
-    await interaction.deferReply();
+  player.on(AudioPlayerStatus.Playing, () => {
+    message.channel.send({ embeds: [new EmbedBuilder().setDescription('**تم تشغيل القرآن**').setColor(0x00ff00)] });
+  });
 
-    try {
-      const channel = interaction.member.voice.channel;
-      const connection = joinVoiceChannel({
-        channelId: channel.id,
-        guildId: interaction.guild.id,
-        adapterCreator: interaction.guild.voiceAdapterCreator,
-        selfMute: false, // منع الميوت الذاتي
-        selfDeaf: false, // منع كتم السماعة الذاتي
-      });
+  player.on('error', error => console.error(`Error: ${error.message}`));
+}
 
-      const player = createAudioPlayer();
-      const resource = createAudioResource(radioUrl, {
-        inlineVolume: true,
-      });
+async function joinAndPlayQuran(guildId, channelId) {
+  const channel = await client.channels.fetch(channelId);
+  const connection = joinVoiceChannel({
+    channelId: channel.id,
+    guildId: guildId,
+    adapterCreator: channel.guild.voiceAdapterCreator,
+  });
 
-      player.play(resource);
-      connection.subscribe(player);
+  const player = createAudioPlayer();
 
-      player.on(AudioPlayerStatus.Playing, () => {
-        console.log('🎵 Playing Quran Radio successfully');
-      });
+  const stream = await play.stream(Url);
+  const resource = createAudioResource(stream.stream, { inputType: stream.type });
 
-      player.on('error', error => {
-        console.error(`Audio Error: ${error.message}`);
-      });
+  player.play(resource);
+  connection.subscribe(player);
 
-      await interaction.editReply('✅ **تم تشغيل إذاعة القرآن الكريم بنجاح!** 📻🎧');
-    } catch (error) {
-      console.error(error);
-      await interaction.editReply('❌ حدث خطأ أثناء تشغيل الإذاعة.');
-    }
-  }
-
-  else if (commandName === 'اذكار') {
-    const randomThikr = ATHKAR[Math.floor(Math.random() * ATHKAR.length)];
-    await interaction.reply({ content: `📖 **ذكر من البوت:**\n${randomThikr}` });
-  }
-
-  else if (commandName === 'اطلع') {
-    const guildConnection = require('@discordjs/voice').getVoiceConnection(interaction.guild.id);
-    if (guildConnection) {
-      guildConnection.destroy();
-      await interaction.reply({ content: '👋 تم إيقاف البث والخروج من الروم بنجاح.' });
-    } else {
-      await interaction.reply({ content: '❌ البوت مو بروم صوتي أصلاً.', ephemeral: true });
-    }
-  }
-});
+  player.on(AudioPlayerStatus.Playing, () => console.log('Playing Quran'));
+  player.on('error', error => console.error(`Error: ${error.message}`));
+}
 
 client.login(process.env.TOKEN);
