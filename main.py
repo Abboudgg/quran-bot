@@ -31,7 +31,7 @@ ATHKAR = ["سبحان الله وبحمده", "لا إله إلا أنت سبح�
 
 @app.route('/')
 def home():
-    channels = [{'id': c.id, 'name': f"#{c.name}"} for g in bot.guilds for c in g.text_channels]
+    channels = [{'id': c.id, 'name': f"#{c.name}"} for g in bot.guilds for g_sub in [g] for c in g_sub.text_channels]
     return render_template_string(HTML, channels=channels)
 
 @app.route('/send', methods=['POST'])
@@ -42,13 +42,18 @@ def send():
 
 @bot.event
 async def on_ready():
-    # هذا هو سطر حالة الاتصال والبث (Streaming)
-    await bot.change_presence(activity=discord.Streaming(name="بث مباشر على Kick", url="https://www.kick.com/cass-sa"))
-    if not athkar_loop.is_running(): athkar_loop.start()
+    # هنا تم ضبط رابط البث ليتوافق مع نظام ديسكورد ويظهر البنفسجي الحقيقي
+    stream_activity = discord.Streaming(
+        name="بث مباشر على Kick", 
+        url="https://www.twitch.tv/mogg"
+    )
+    await bot.change_presence(activity=stream_activity, status=discord.Status.online)
+    if not athkar_loop.is_running(): 
+        athkar_loop.start()
 
 @tasks.loop(hours=1)
 async def athkar_loop():
-    c = bot.get_channel(1571122362839990324) # روم الأذكار المخصص
+    c = bot.get_channel(1571122362839990324)
     if c: await c.send(f"🤖 **تذكرة أذكار:**\n{random.choice(ATHKAR)}")
 
 @bot.tree.command(name="شغل", description="تشغيل تلاوة القرآن")
