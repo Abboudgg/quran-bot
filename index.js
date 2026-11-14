@@ -25,7 +25,7 @@ app.listen(PORT, () => {
 });
 
 // رابط إذاعة مستقر وثابت لضمان عدم توقف البث
-const radioUrl = 'https://stream.qurancentral.com/yasser-al-dosari-128kbps'; 
+const radioUrl = 'https://www.youtube.com/live/IsJTAdC3-Jw?si=t0h9iibDhuAut184'; 
 
 const ATHKAR = [
   "✨ **سبحان الله وبحمده، سبحان الله العظيم**",
