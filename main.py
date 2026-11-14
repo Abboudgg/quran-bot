@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands
-import yt_dlp, asyncio, os, random
+import asyncio, os, random
 from flask import Flask, render_template_string, request
 from threading import Thread
 
@@ -31,9 +31,6 @@ class Bot(commands.Bot):
     async def setup_hook(self): await self.tree.sync()
 
 bot = Bot()
-
-# سحب المفتاح بأمان من متغيرات البيئة في Render
-YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY')
 
 ATHKAR = [
     "سبحان الله وبحمده، سبحان الله العظيم",
@@ -81,23 +78,22 @@ async def test_in(i: discord.Interaction):
         await vc.move_to(vchan)
     await i.followup.send(f"✅ دخلت الروم: **{vchan.name}** بنجاح!", ephemeral=True)
 
-@bot.tree.command(name="شغل", description="تشغيل تلاوة القرآن الكريم مع بار تحميل")
-@app_commands.describe(surah="اسم السورة (مثل: الملك)", sheikh="اسم الشيخ (مثل: ياسر الدوسري)")
-async def play(i: discord.Interaction, surah: str, sheikh: str):
+@bot.tree.command(name="اذاعة", description="تشغيل بث إذاعة القرآن الكريم المباشر مع بار تحميل")
+async def radio(i: discord.Interaction):
     if not i.user.voice:
         return await i.response.send_message("❌ يجب الدخول لروم صوتي أولاً!", ephemeral=True)
     
-    await i.response.send_message("⏳ جاري بدء الطلب...", ephemeral=False)
+    await i.response.send_message("⏳ جاري بدء تشغيل الإذاعة...", ephemeral=False)
     msg = await i.original_response()
 
     try:
-        await msg.edit(content="🔍 `[██░░░░░░░░] 20%` - جاري البحث باستخدام مفتاح API...")
+        await msg.edit(content="🔍 `[██░░░░░░░░] 20%` - جاري تجهيز الاتصال...")
         await asyncio.sleep(0.4)
 
         vchan = i.user.voice.channel
         vc = i.guild.voice_client
         
-        await msg.edit(content="🔊 `[█████░░░░░] 50%` - جاري الاتصال بالروم الصوتي...")
+        await msg.edit(content="🔊 `[█████░░░░░] 50%` - جاري الدخول للروم الصوتي...")
         if vc is None:
             vc = await vchan.connect()
         elif vc.channel != vchan:
@@ -106,47 +102,31 @@ async def play(i: discord.Interaction, surah: str, sheikh: str):
         if vc.is_playing():
             vc.stop()
 
-        query = f"القرآن الكريم سورة {surah} القارئ {sheikh}"
+        await msg.edit(content="🎵 `[████████░░] 80%` - جاري ربط بث الإذاعة...")
         
-        # ربط البحث بالمفتاح الآمن إذا كان متوفراً
-        search_query = f"ytsearch1:{query}&key={YOUTUBE_API_KEY}" if YOUTUBE_API_KEY else f"ytsearch1:{query}"
-
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'default_search': search_query,
-            'quiet': True,
-            'noplaylist': True,
-        }
-
-        await msg.edit(content="🎵 `[████████░░] 80%` - جاري سحب ملف التلاوة...")
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(query, download=False)
-            if 'entries' in info:
-                info = info['entries'][0]
-            url = info['url']
-            title = info['title']
+        # رابط بث إذاعة القرآن الكريم المباشر والثابت
+        radio_url = "https://stream.radiojar.com/8s5u5tpdtwzuv"
 
         audio_source = discord.FFmpegPCMAudio(
-            url, 
+            radio_url, 
             before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 
             options='-vn'
         )
         
         vc.play(audio_source)
-        
-        await msg.edit(content=f"✅ `[██████████] 100%` - **تم التشغيل بنجاح!** 🎧\n**التلاوة:** {title}")
+        await msg.edit(content="✅ `[██████████] 100%` - **تم تشغيل إذاعة القرآن الكريم بنجاح!** 📻🎧")
 
     except Exception as e:
-        await msg.edit(content="❌ حدث خطأ أثناء تشغيل التلاوة، تأكد من كتابة اسم السورة والشيخ بشكل صحيح.")
-        print(f"Audio Error: {e}")
+        await msg.edit(content="❌ حدث خطأ أثناء تشغيل الإذاعة.")
+        print(f"Radio Error: {e}")
 
-@bot.tree.command(name="اطلع", description="إيقاف التلاوة والخروج")
+@bot.tree.command(name="اطلع", description="إيقاف البث والخروج من الروم")
 async def leave(i: discord.Interaction):
     if i.guild.voice_client:
         await i.guild.voice_client.disconnect()
-        await i.response.send_message("👋 تم الخروج وإيقاف الصوت.")
+        await i.response.send_message("👋 تم إيقاف البث والخروج بنجاح.")
     else:
-        await i.response.send_message("❌ البوت مو بروم صوتي.", ephemeral=True)
+        await i.response.send_message("❌ البوت مو بروم صوتي أصلاً.", ephemeral=True)
 
 Thread(target=lambda: app.run(host='0.0.0.0', port=8080)).start()
 bot.run(os.environ.get('TOKEN'))
