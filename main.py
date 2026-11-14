@@ -97,7 +97,7 @@ class MyBot(commands.Bot):
 
     async def setup_hook(self):
         await self.tree.sync()
-        print("تم مزامنة أوامر السلاش (Slash Commands) بنجاح!")
+        print("تم مزامنة أوامر السلاش بنجاح!")
 
 bot = MyBot()
 
@@ -168,4 +168,62 @@ async def on_ready():
         send_athkar_loop.start()
 
 @tasks.loop(hours=1)
-async
+async def send_athkar_loop():
+    for guild in bot.guilds:
+        target_channel = None
+        for channel in guild.text_channels:
+            if channel.permissions_for(guild.me).send_messages:
+                target_channel = channel
+                break
+        
+        if target_channel:
+            athkar = random.choice(ATHKAR_LIST)
+            await target_channel.send(f"🤖 **تذكرة أذكار:**\n{athkar}")
+
+@bot.tree.command(name="شغل", description="تشغيل تلاوة القرآن الكريم في الروم الصوتي")
+@app_commands.describe(search="اسم السورة أو القارئ")
+async def play_quran(interaction: discord.Interaction, search: str):
+    if not interaction.user.voice:
+        await interaction.response.send_message("❌ يجب أن تدخل إلى روم صوتي أولاً!", ephemeral=True)
+        return
+
+    voice_channel = interaction.user.voice.channel
+    guild = interaction.guild
+
+    if guild.voice_client is None:
+        await voice_channel.connect()
+    elif guild.voice_client.channel != voice_channel:
+        await guild.voice_client.move_to(voice_channel)
+
+    if guild.voice_client.is_playing():
+        guild.voice_client.stop()
+
+    await interaction.response.send_message(f"🔍 جاري البحث عن التلاوة: **{search}**...")
+
+    try:
+        query = f"قرآن كريم {search}"
+        with yt_dlp.YoutubeDL(YDL_OPTIONS) as ydl:
+            info = ydl.extract_info(query, download=False)
+            if 'entries' in info:
+                info = info['entries'][0]
+            url = info['url']
+            title = info['title']
+
+        source = discord.FFmpegPCMAudio(url, **FFMPEG_OPTIONS)
+        guild.voice_client.play(source)
+        await interaction.followup.send(f"🎧 **يتم الآن تشغيل:** {title}")
+
+    except Exception as e:
+        await interaction.followup.send("❌ حدث خطأ أثناء تشغيل التلاوة.")
+        print(e)
+
+@bot.tree.command(name="اطلع", description="إيقاف التلاوة وخروج البوت من الروم الصوتي")
+async def leave_voice(interaction: discord.Interaction):
+    if interaction.guild.voice_client:
+        await interaction.guild.voice_client.disconnect()
+        await interaction.response.send_message("👋 تم إيقاف التلاوة والخروج من الروم الصوتي.")
+    else:
+        await interaction.response.send_message("❌ البوت ليس في أي روم صوتي حالياً.", ephemeral=True)
+
+keep_alive()
+bot.run(os.environ.get('TOKEN'))
