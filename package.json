@@ -4,7 +4,7 @@
   "description": "quran bot discord voice",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "nodemon index.js"
   },
   "author": "",
   "license": "ISC",
@@ -14,9 +14,12 @@
     "dotenv": "^16.4.4",
     "ffmpeg-static": "^5.2.0",
     "libsodium-wrappers": "^0.7.13",
+    "nodemon": "^3.0.3",
+    "ytdl-core": "^4.11.5",
+    "play-dl": "^1.9.7",
     "express": "^4.18.2"
   },
   "engines": {
-    "node": "18.x"
+    "node": "16.x"
   }
 }
