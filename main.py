@@ -80,7 +80,7 @@ async def test_in(i: discord.Interaction):
         await vc.move_to(vchan)
     await i.followup.send(f"✅ دخلت الروم: **{vchan.name}** بنجاح!", ephemeral=True)
 
-@bot.tree.command(name="اذاعة", description="تشغيل بث إذاعة القرآن الكريم المباشر مع بار تحميل")
+@bot.tree.command(name="اذاعة", description="تشغيل بث إذاعة القرآن الكريم السعودية المباشر مع بار تحميل")
 async def radio(i: discord.Interaction):
     if not i.user.voice:
         return await i.response.send_message("❌ يجب الدخول لروم صوتي أولاً!", ephemeral=True)
@@ -104,9 +104,10 @@ async def radio(i: discord.Interaction):
         if vc.is_playing():
             vc.stop()
 
-        await msg.edit(content="🎵 `[████████░░] 80%` - جاري ربط بث الإذاعة...")
+        await msg.edit(content="🎵 `[████████░░] 80%` - جاري ربط بث الإذاعة الرسمية...")
         
-        radio_url = "https://stream.radiojar.com/8s5u5tpdtwzuv"
+        # رابط إذاعة القرآن الكريم الرسمي السعودي
+        radio_url = "https://radioplus.sba.sa/live/4"
 
         audio_source = discord.FFmpegPCMAudio(
             radio_url, 
@@ -115,7 +116,7 @@ async def radio(i: discord.Interaction):
         )
         
         vc.play(audio_source)
-        await msg.edit(content="✅ `[██████████] 100%` - **تم تشغيل إذاعة القرآن الكريم بنجاح!** 📻🎧")
+        await msg.edit(content="✅ `[██████████] 100%` - **تم تشغيل إذاعة القرآن الكريم (السعودية) بنجاح!** 📻🎧")
 
     except Exception as e:
         await msg.edit(content="❌ حدث خطأ أثناء تشغيل الإذاعة.")
