@@ -32,8 +32,8 @@ class Bot(commands.Bot):
 
 bot = Bot()
 
-# --- مفتاح يوتيوب API الخاص بك ---
-YOUTUBE_API_KEY = "AIzaSyAaM8rBPmz3d0s2j2xz2CYRvAcWt7soi5A"
+# سحب المفتاح بأمان من متغيرات البيئة في Render
+YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY')
 
 ATHKAR = [
     "سبحان الله وبحمده، سبحان الله العظيم",
@@ -87,19 +87,16 @@ async def play(i: discord.Interaction, surah: str, sheikh: str):
     if not i.user.voice:
         return await i.response.send_message("❌ يجب الدخول لروم صوتي أولاً!", ephemeral=True)
     
-    # استجابة فورية لمنع خطأ التايم آوت
     await i.response.send_message("⏳ جاري بدء الطلب...", ephemeral=False)
     msg = await i.original_response()
 
     try:
-        # خطوة 1: بدء البحث
         await msg.edit(content="🔍 `[██░░░░░░░░] 20%` - جاري البحث باستخدام مفتاح API...")
         await asyncio.sleep(0.4)
 
         vchan = i.user.voice.channel
         vc = i.guild.voice_client
         
-        # خطوة 2: الاتصال بالصوت
         await msg.edit(content="🔊 `[█████░░░░░] 50%` - جاري الاتصال بالروم الصوتي...")
         if vc is None:
             vc = await vchan.connect()
@@ -111,14 +108,16 @@ async def play(i: discord.Interaction, surah: str, sheikh: str):
 
         query = f"القرآن الكريم سورة {surah} القارئ {sheikh}"
         
+        # ربط البحث بالمفتاح الآمن إذا كان متوفراً
+        search_query = f"ytsearch1:{query}&key={YOUTUBE_API_KEY}" if YOUTUBE_API_KEY else f"ytsearch1:{query}"
+
         ydl_opts = {
             'format': 'bestaudio/best',
-            'default_search': f"ytsearch1:{query}&key={YOUTUBE_API_KEY}",
+            'default_search': search_query,
             'quiet': True,
             'noplaylist': True,
         }
 
-        # خطوة 3: استخراج الصوت
         await msg.edit(content="🎵 `[████████░░] 80%` - جاري سحب ملف التلاوة...")
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(query, download=False)
@@ -135,7 +134,6 @@ async def play(i: discord.Interaction, surah: str, sheikh: str):
         
         vc.play(audio_source)
         
-        # خطوة 4: الاكتمال والتشغيل بنجاح
         await msg.edit(content=f"✅ `[██████████] 100%` - **تم التشغيل بنجاح!** 🎧\n**التلاوة:** {title}")
 
     except Exception as e:
