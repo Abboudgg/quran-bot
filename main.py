@@ -106,13 +106,13 @@ async def radio(i: discord.Interaction):
 
         await msg.edit(content="🎵 `[████████░░] 80%` - جاري ربط بث الإذاعة الرسمية...")
         
-        # رابط إذاعة القرآن الكريم الرسمي السعودي
         radio_url = "https://radioplus.sba.sa/live/4"
 
+        # خيارات متقدمة ومحدثة لتجاوز حماية الروابط المباشرة وبثها بسلاسة تامة
         audio_source = discord.FFmpegPCMAudio(
             radio_url, 
-            before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 
-            options='-vn'
+            before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -user_agent "Mozilla/5.0"', 
+            options='-vn -b:a 128k'
         )
         
         vc.play(audio_source)
