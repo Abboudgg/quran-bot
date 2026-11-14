@@ -25,6 +25,9 @@ FFMPEG_OPTIONS = {
 @bot.event
 async def on_ready():
     print(f'تم تشغيل البوت بنجاح: {bot.user.name}')
+    # ضبط حالة البوت ليظهر كأنه يشاهد بثك على Kick بلون البث المميز
+    activity = discord.Streaming(name="بث مباشر على Kick", url="https://www.kick.com/cass-sa")
+    await bot.change_presence(activity=activity)
 
 @bot.command(name='شغل', aliases=['تشغيل', 'play'])
 async def play_quran(ctx, *, search: str):
@@ -81,6 +84,7 @@ async def send_ayah(ctx):
     except:
         await ctx.send("عذراً، تعذر جلب الآية حالياً.")
 
-# تشغيل البوت عبر متغير النظام آمن جداً
+# تشغيل البوت عبر متغير النظام الآمن
 bot.run(os.environ.get('TOKEN'))
+
 
