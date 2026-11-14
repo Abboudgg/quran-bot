@@ -25,7 +25,7 @@ app.get('/', (req, res) => {
 
 const channelId = '1571122362839990324';
 const guildId = '1571120459775352925'; 
-const Url = 'https://youtu.be/fLkdQeeRtYs'; 
+const Url = 'https://youtu.be/mQ70kbDmsKA';
 
 client.once('ready', async () => {
   console.log(`✅ | Logged in as ${client.user.tag}`);
