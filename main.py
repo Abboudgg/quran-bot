@@ -96,6 +96,7 @@ async def play(i: discord.Interaction, surah: str, sheikh: str):
         if vc.is_playing():
             vc.stop()
 
+        # إعدادات متقدمة تدعم المفتاح وتضمن سحب الصوت بنجاح
         ydl_opts = {
             'format': 'bestaudio/best',
             'default_search': 'ytsearch1',
