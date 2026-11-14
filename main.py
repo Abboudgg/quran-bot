@@ -24,6 +24,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.presences = True
 intents.members = True
+intents.voice_states = True  # مفلعلة عشان يقرأ الروم الصوتي صح
 
 class Bot(commands.Bot):
     def __init__(self): super().__init__(command_prefix="!", intents=intents)
@@ -61,17 +62,39 @@ async def athkar_loop():
 @bot.tree.command(name="شغل", description="تشغيل تلاوة القرآن الكريم")
 @app_commands.describe(search="اسم السورة أو القارئ")
 async def play(i: discord.Interaction, search: str):
-    if not i.user.voice: return await i.response.send_message("❌ يجب الدخول لروم صوتي أولاً!", ephemeral=True)
-    vc, vchan = i.guild.voice_client, i.user.voice.channel
-    if not vc: await vchan.connect()
-    elif vc.channel != vchan: await vc.move_to(vchan)
-    if vc and vc.is_playing(): vc.stop()
-    await i.response.send_message(f"🔍 جاري البحث عن: **{search}**...")
-    with yt_dlp.YoutubeDL({'format': 'bestaudio', 'quiet': True}) as ydl:
-        info = ydl.extract_info(f"قرآن كريم {search}", download=False)
-        if 'entries' in info: info = info['entries'][0]
-        vc.play(discord.FFmpegPCMAudio(info['url'], before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', options='-vn'))
-    await i.followup.send(f"🎧 **يتم الآن تشغيل:** {info['title']}")
+    if not i.user.voice:
+        return await i.response.send_message("❌ يجب الدخول لروم صوتي أولاً!", ephemeral=True)
+    
+    # الرد الفوري لمنع مشكلة The application did not respond
+    await i.response.send_message(f"🔍 جاري البحث والتحضير لتلاوة: **{search}**...", ephemeral=False)
+
+    try:
+        voice_channel = i.user.voice.channel
+        guild = i.guild
+
+        if guild.voice_client is None:
+            vc = await voice_channel.connect()
+        elif guild.voice_client.channel != voice_channel:
+            await guild.voice_client.move_to(voice_channel)
+            vc = guild.voice_client
+        else:
+            vc = guild.voice_client
+
+        if vc.is_playing():
+            vc.stop()
+
+        with yt_dlp.YoutubeDL({'format': 'bestaudio', 'quiet': True}) as ydl:
+            info = ydl.extract_info(f"قرآن كريم {search}", download=False)
+            if 'entries' in info: info = info['entries'][0]
+            url = info['url']
+            title = info['title']
+
+        vc.play(discord.FFmpegPCMAudio(url, before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', options='-vn'))
+        await i.followup.send(f"🎧 **يتم الآن تشغيل:** {title}")
+
+    except Exception as e:
+        await i.followup.send("❌ حدث خطأ أثناء تشغيل التلاوة، تأكد من الرابط أو حاول مرة أخرى.")
+        print(e)
 
 @bot.tree.command(name="اطلع", description="إيقاف التلاوة والخروج من الروم الصوتي")
 async def leave(i: discord.Interaction):
