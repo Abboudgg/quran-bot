@@ -1,12 +1,31 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import yt_dlp
 import requests
 import asyncio
 import os
+import random
+from flask import Flask
+from threading import Thread
+
+# إعداد خادم ويب وهمي عشان Render يعتبره Web Service مجاني وما يقفله
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is running 24/7!"
+
+def run():
+    app.run(host='0.0.0.0', port=8080)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.presences = True
+intents.members = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
@@ -22,12 +41,37 @@ FFMPEG_OPTIONS = {
     'options': '-vn'
 }
 
+# قائمة الأذكار
+ATHKAR_LIST = [
+    "سبحان الله وبحمده، سبحان الله العظيم 🌿",
+    "لا إله إلا أنت سبحانك إني كنت من الظالمين 🤍",
+    "استغفر الله العظيم واتوب إليه 🌙",
+    "لا حول ولا قوة إلا بالله العلي العظيم ✨",
+    "اللهم صل وسلم على نبينا محمد وعلى آله وصحبه أجمعين 🌹",
+    "سبحان الله، والحمد لله، ولا إله إلا الله، والله أكبر 💫",
+    "الحمد لله رب العالمين حمداً كثيراً طيباً مباركاً فيه 🌴"
+]
+
 @bot.event
 async def on_ready():
     print(f'تم تشغيل البوت بنجاح: {bot.user.name}')
-    # ضبط حالة البوت ليظهر كأنه يشاهد بثك على Kick بلون البث المميز
     activity = discord.Streaming(name="بث مباشر على Kick", url="https://www.kick.com/cass-sa")
     await bot.change_presence(activity=activity)
+    if not send_athkar_loop.is_running():
+        send_athkar_loop.start()
+
+@tasks.loop(hours=1)
+async def send_athkar_loop():
+    for guild in bot.guilds:
+        target_channel = None
+        for channel in guild.text_channels:
+            if channel.permissions_for(guild.me).send_messages:
+                target_channel = channel
+                break
+        
+        if target_channel:
+            athkar = random.choice(ATHKAR_LIST)
+            await target_channel.send(f"🤖 **تذكرة أذكار:**\n{athkar}")
 
 @bot.command(name='شغل', aliases=['تشغيل', 'play'])
 async def play_quran(ctx, *, search: str):
@@ -84,7 +128,8 @@ async def send_ayah(ctx):
     except:
         await ctx.send("عذراً، تعذر جلب الآية حالياً.")
 
-# تشغيل البوت عبر متغير النظام الآمن
+# تشغيل خادم الويب الوهمي أولاً لتجنب خطأ الـ Port
+keep_alive()
+
+# تشغيل البوت
 bot.run(os.environ.get('TOKEN'))
-
-
