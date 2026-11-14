@@ -1,6 +1,5 @@
-const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits } = require('discord.js');
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
-const play = require('play-dl'); 
 require('dotenv').config();
 
 const client = new Client({
@@ -23,9 +22,12 @@ app.get('/', (req, res) => {
   res.send('<body><center><h1>Bot 24H ON!</h1></center></body>');
 });
 
+// معلومات الروم والسيرفر
 const channelId = '1571122362839990324';
 const guildId = '1571120459775352925'; 
-const Url = 'https://youtu.be/mQ70kbDmsKA'; // الرابط المستقر للقرآن
+
+// رابط بث إذاعي مباشر للقرآن الكريم (يعمل 24/7 بدون مشاكل يوتيوب)
+const quranStreamUrl = 'https://backup.quran-radio.com:8443/live'; // أو بإمكاننا استخدام رابط إذاعة القرآن الكريم من القاهرة
 
 client.once('ready', async () => {
   console.log(`✅ | Logged in as ${client.user.tag}`);
@@ -54,19 +56,26 @@ async function joinAndPlayQuran(guildId, channelId) {
 
     const player = createAudioPlayer();
     
-    console.log('🔄 Fetching stream from YouTube...');
-    const stream = await play.stream(Url);
-    const resource = createAudioResource(stream.stream, { inputType: stream.type });
+    console.log('🔄 Connecting to Quran Radio Stream...');
+    const resource = createAudioResource(quranStreamUrl);
 
     player.play(resource);
     connection.subscribe(player);
 
     player.on(AudioPlayerStatus.Playing, () => {
-      console.log('▶️ Playing Quran successfully!');
+      console.log('▶️ Playing Quran Radio successfully 24/7!');
     });
 
     player.on('error', error => {
       console.error(`⚠️ Audio Player Error: ${error.message}`);
+    });
+
+    // إعادة التشغيل تلقائياً لو حصل انقطع البث
+    player.on(AudioPlayerStatus.Idle, () => {
+      console.log('🔄 Restarting stream...');
+      setTimeout(() => {
+        player.play(createAudioResource(quranStreamUrl));
+      }, 5000);
     });
 
   } catch (error) {
