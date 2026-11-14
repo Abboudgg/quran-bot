@@ -33,10 +33,12 @@ class Bot(commands.Bot):
 bot = Bot()
 
 ATHKAR = [
-    "سبحان الله وبحمده، سبحان الله العظيم",
-    "لا إله إلا أنت سبحانك إني كنت من الظالمين",
-    "استغفر الله العظيم واتوب إليه",
-    "لا حول ولا قوة إلا بالله العلي العظيم"
+    "✨ **سبحان الله وبحمده، سبحان الله العظيم**",
+    "✨ **لا إله إلا أنت سبحانك إني كنت من الظالمين**",
+    "✨ **استغفر الله العظيم واتوب إليه**",
+    "✨ **لا حول ولا قوة إلا بالله العلي العظيم**",
+    "✨ **اللهم صل وسلم على نبينا محمد**",
+    "✨ **لا إله إلا الله وحدَهُ لا شريك له، له الملك وله الحمد وهو على كل شيء قدير**"
 ]
 
 @app.route('/')
@@ -58,7 +60,7 @@ async def on_ready():
 @tasks.loop(hours=1)
 async def athkar_loop():
     c = bot.get_channel(1571122362839990324)
-    if c: await c.send(f"🤖 **تذكرة أذكار:**\n{random.choice(ATHKAR)}")
+    if c: await c.send(f"🤖 **تذكرة أذكار تلقائية:**\n{random.choice(ATHKAR)}")
 
 @bot.tree.command(name="test", description="اختبار استجابة البوت")
 async def test_bot(i: discord.Interaction):
@@ -104,7 +106,6 @@ async def radio(i: discord.Interaction):
 
         await msg.edit(content="🎵 `[████████░░] 80%` - جاري ربط بث الإذاعة...")
         
-        # رابط بث إذاعة القرآن الكريم المباشر والثابت
         radio_url = "https://stream.radiojar.com/8s5u5tpdtwzuv"
 
         audio_source = discord.FFmpegPCMAudio(
@@ -119,6 +120,22 @@ async def radio(i: discord.Interaction):
     except Exception as e:
         await msg.edit(content="❌ حدث خطأ أثناء تشغيل الإذاعة.")
         print(f"Radio Error: {e}")
+
+@bot.tree.command(name="اذكار", description="إرسال ذكر مبارك مع بار تحميل")
+@app_commands.describe(channel="اختر روم نصي مخصص لإرسال الأذكار فيه (اختياري)")
+async def send_athkar(i: discord.Interaction, channel: discord.TextChannel = None):
+    target_channel = channel or i.channel
+    
+    await i.response.send_message("⏳ جاري تحضير الذكر...", ephemeral=True)
+    msg = await i.original_response()
+
+    await msg.edit(content="🔍 `[████░░░░░░] 40%` - جاري جلب الأذكار...")
+    await asyncio.sleep(0.4)
+
+    await msg.edit(content="✨ `[██████████] 100%` - تم إرسال الذكر بنجاح!")
+    
+    selected_thikr = random.choice(ATHKAR)
+    await target_channel.send(f"📖 **ذكر من البوت:**\n{selected_thikr}")
 
 @bot.tree.command(name="اطلع", description="إيقاف البث والخروج من الروم")
 async def leave(i: discord.Interaction):
