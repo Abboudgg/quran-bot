@@ -31,6 +31,10 @@ class Bot(commands.Bot):
     async def setup_hook(self): await self.tree.sync()
 
 bot = Bot()
+
+# --- مفتاح يوتيوب API الخاص بك ---
+YOUTUBE_API_KEY = "AIzaSyAaM8rBPmz3d0s2j2xz2CYRvAcWt7soi5A"
+
 ATHKAR = [
     "سبحان الله وبحمده، سبحان الله العظيم",
     "لا إله إلا أنت سبحانك إني كنت من الظالمين",
@@ -68,26 +72,35 @@ async def test_in(i: discord.Interaction):
     if not i.user.voice:
         return await i.response.send_message("❌ ادخل روم صوتي أولاً!", ephemeral=True)
     
+    await i.response.defer(ephemeral=True)
     vc = i.guild.voice_client
     vchan = i.user.voice.channel
     if vc is None:
         await vchan.connect()
     elif vc.channel != vchan:
         await vc.move_to(vchan)
-    await i.response.send_message(f"✅ دخلت الروم: **{vchan.name}** بنجاح!", ephemeral=True)
+    await i.followup.send(f"✅ دخلت الروم: **{vchan.name}** بنجاح!", ephemeral=True)
 
-@bot.tree.command(name="شغل", description="تشغيل تلاوة القرآن الكريم بالصوت")
+@bot.tree.command(name="شغل", description="تشغيل تلاوة القرآن الكريم مع بار تحميل")
 @app_commands.describe(surah="اسم السورة (مثل: الملك)", sheikh="اسم الشيخ (مثل: ياسر الدوسري)")
 async def play(i: discord.Interaction, surah: str, sheikh: str):
     if not i.user.voice:
-        return await i.response.send_message("❌ ادخل روم صوتي أولاً!", ephemeral=True)
+        return await i.response.send_message("❌ يجب الدخول لروم صوتي أولاً!", ephemeral=True)
     
-    await i.response.send_message(f"🔍 جاري البحث والتحضير لتلاوة **سورة {surah}** بصوت الشيخ **{sheikh}**...", ephemeral=False)
+    # استجابة فورية لمنع خطأ التايم آوت
+    await i.response.send_message("⏳ جاري بدء الطلب...", ephemeral=False)
+    msg = await i.original_response()
 
     try:
+        # خطوة 1: بدء البحث
+        await msg.edit(content="🔍 `[██░░░░░░░░] 20%` - جاري البحث باستخدام مفتاح API...")
+        await asyncio.sleep(0.4)
+
         vchan = i.user.voice.channel
         vc = i.guild.voice_client
         
+        # خطوة 2: الاتصال بالصوت
+        await msg.edit(content="🔊 `[█████░░░░░] 50%` - جاري الاتصال بالروم الصوتي...")
         if vc is None:
             vc = await vchan.connect()
         elif vc.channel != vchan:
@@ -96,16 +109,19 @@ async def play(i: discord.Interaction, surah: str, sheikh: str):
         if vc.is_playing():
             vc.stop()
 
-        # إعدادات متقدمة تدعم المفتاح وتضمن سحب الصوت بنجاح
+        query = f"القرآن الكريم سورة {surah} القارئ {sheikh}"
+        
         ydl_opts = {
             'format': 'bestaudio/best',
-            'default_search': 'ytsearch1',
+            'default_search': f"ytsearch1:{query}&key={YOUTUBE_API_KEY}",
             'quiet': True,
             'noplaylist': True,
         }
 
+        # خطوة 3: استخراج الصوت
+        await msg.edit(content="🎵 `[████████░░] 80%` - جاري سحب ملف التلاوة...")
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"القرآن الكريم سورة {surah} القارئ {sheikh}", download=False)
+            info = ydl.extract_info(query, download=False)
             if 'entries' in info:
                 info = info['entries'][0]
             url = info['url']
@@ -118,10 +134,12 @@ async def play(i: discord.Interaction, surah: str, sheikh: str):
         )
         
         vc.play(audio_source)
-        await i.followup.send(f"🎧 **تم بدء التشغيل بنجاح:** {title}")
+        
+        # خطوة 4: الاكتمال والتشغيل بنجاح
+        await msg.edit(content=f"✅ `[██████████] 100%` - **تم التشغيل بنجاح!** 🎧\n**التلاوة:** {title}")
 
     except Exception as e:
-        await i.followup.send("❌ حدث خطأ أثناء التشغيل. تأكد من إدخال اسم سورة وشيخ صحيحين.")
+        await msg.edit(content="❌ حدث خطأ أثناء تشغيل التلاوة، تأكد من كتابة اسم السورة والشيخ بشكل صحيح.")
         print(f"Audio Error: {e}")
 
 @bot.tree.command(name="اطلع", description="إيقاف التلاوة والخروج")
