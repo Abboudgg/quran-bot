@@ -7,15 +7,18 @@ from threading import Thread
 
 app = Flask('')
 HTML = '''<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>لوحة التحكم</title></head>
-<body style="background:#450a0a;color:#fff;font-family:Tahoma;text-align:center;padding:50px;">
-<h2>🤖 لوحة التحكم</h2>
+<body style="background:linear-gradient(135deg, #450a0a 0%, #1e1b4b 100%);color:#fff;font-family:Tahoma;text-align:center;padding:40px;min-height:100vh;">
+<div style="background:rgba(30, 41, 59, 0.85);padding:25px;border-radius:20px;max-width:450px;margin:auto;box-shadow:0 8px 32px rgba(0,0,0,0.6);">
+<h2>🤖 لوحة تحكم البوت</h2>
 <form method="POST" action="/send">
-<select name="cid" style="padding:10px;width:300px;">
+<select name="cid" style="padding:10px;width:100%;border-radius:8px;background:#0f172a;color:#fff;border:1px solid #334155;margin-bottom:15px;">
 {% for c in channels %}<option value="{{c.id}}">{{c.name}}</option>{% endfor %}
-</select><br><br>
-<textarea name="msg" rows="3" style="padding:10px;width:300px;" required>سبحان الله وبحمده، سبحان الله العظيم</textarea><br><br>
-<button type="submit" style="padding:10px 20px;background:#0ea5e9;color:#fff;border:none;border-radius:5px;">إرسال</button>
-</form></body></html>'''
+</select>
+<textarea name="msg" rows="3" style="padding:10px;width:100%;border-radius:8px;background:#0f172a;color:#fff;border:1px solid #334155;box-sizing:border-box;margin-bottom:15px;" required>سبحان الله وبحمده، سبحان الله العظيم</textarea>
+<button type="submit" style="padding:12px;width:100%;background:#0ea5e9;color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">🚀 إرسال إلى ديسكورد</button>
+</form>
+<a href="https://www.kick.com/cass-sa" target="_blank" style="display:block;margin-top:15px;padding:12px;background:#22c55e;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;">📺 زيارة قناة Kick</a>
+</div></body></html>'''
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -27,56 +30,55 @@ class Bot(commands.Bot):
     async def setup_hook(self): await self.tree.sync()
 
 bot = Bot()
-ATHKAR = ["سبحان الله وبحمده", "لا إله إلا أنت سبحانك", "استغفر الله العظيم واتوب إليه"]
+ATHKAR = [
+    "سبحان الله وبحمده، سبحان الله العظيم",
+    "لا إله إلا أنت سبحانك إني كنت من الظالمين",
+    "استغفر الله العظيم واتوب إليه",
+    "لا حول ولا قوة إلا بالله العلي العظيم"
+]
 
 @app.route('/')
 def home():
-    channels = [{'id': c.id, 'name': f"#{c.name}"} for g in bot.guilds for g_sub in [g] for c in g_sub.text_channels]
+    channels = [{'id': c.id, 'name': f"{g.name} ➔ #{c.name}"} for g in bot.guilds for c in g.text_channels]
     return render_template_string(HTML, channels=channels)
 
 @app.route('/send', methods=['POST'])
 def send():
     cid, msg = int(request.form.get('cid')), request.form.get('msg')
-    asyncio.run_coroutine_threadsafe(bot.get_channel(cid).send(f"📢 **إعلان:**\n{msg}"), bot.loop)
+    asyncio.run_coroutine_threadsafe(bot.get_channel(cid).send(f"📢 **تنبيه من لوحة التحكم:**\n{msg}"), bot.loop)
     return home()
 
 @bot.event
 async def on_ready():
-    # هنا تم ضبط رابط البث ليتوافق مع نظام ديسكورد ويظهر البنفسجي الحقيقي
-    stream_activity = discord.Streaming(
-        name="بث مباشر على Kick", 
-        url="https://www.twitch.tv/mogg"
-    )
-    await bot.change_presence(activity=stream_activity, status=discord.Status.online)
-    if not athkar_loop.is_running(): 
-        athkar_loop.start()
+    await bot.change_presence(activity=discord.Streaming(name="بث مباشر على Kick", url="https://kick.com/cass-sa"))
+    if not athkar_loop.is_running(): athkar_loop.start()
 
 @tasks.loop(hours=1)
 async def athkar_loop():
     c = bot.get_channel(1571122362839990324)
     if c: await c.send(f"🤖 **تذكرة أذكار:**\n{random.choice(ATHKAR)}")
 
-@bot.tree.command(name="شغل", description="تشغيل تلاوة القرآن")
+@bot.tree.command(name="شغل", description="تشغيل تلاوة القرآن الكريم")
 @app_commands.describe(search="اسم السورة أو القارئ")
 async def play(i: discord.Interaction, search: str):
-    if not i.user.voice: return await i.response.send_message("❌ ادخل روم صوتي!", ephemeral=True)
+    if not i.user.voice: return await i.response.send_message("❌ يجب الدخول لروم صوتي أولاً!", ephemeral=True)
     vc, vchan = i.guild.voice_client, i.user.voice.channel
     if not vc: await vchan.connect()
     elif vc.channel != vchan: await vc.move_to(vchan)
     if vc and vc.is_playing(): vc.stop()
-    await i.response.send_message(f"🔍 جاري البحث: **{search}**...")
+    await i.response.send_message(f"🔍 جاري البحث عن: **{search}**...")
     with yt_dlp.YoutubeDL({'format': 'bestaudio', 'quiet': True}) as ydl:
         info = ydl.extract_info(f"قرآن كريم {search}", download=False)
         if 'entries' in info: info = info['entries'][0]
         vc.play(discord.FFmpegPCMAudio(info['url'], before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', options='-vn'))
-    await i.followup.send(f"🎧 **تم التشغيل:** {info['title']}")
+    await i.followup.send(f"🎧 **يتم الآن تشغيل:** {info['title']}")
 
-@bot.tree.command(name="اطلع", description="إيقاف وخروج")
+@bot.tree.command(name="اطلع", description="إيقاف التلاوة والخروج من الروم الصوتي")
 async def leave(i: discord.Interaction):
     if i.guild.voice_client:
         await i.guild.voice_client.disconnect()
-        await i.response.send_message("👋 تم الخروج.")
-    else: await i.response.send_message("❌ البوت مو بروم صوتي.", ephemeral=True)
+        await i.response.send_message("👋 تم إيقاف التلاوة والخروج بنجاح.")
+    else: await i.response.send_message("❌ البوت ليس في أي روم صوتي.", ephemeral=True)
 
 Thread(target=lambda: app.run(host='0.0.0.0', port=8080)).start()
 bot.run(os.environ.get('TOKEN'))
