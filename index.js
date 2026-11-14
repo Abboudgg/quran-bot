@@ -75,10 +75,14 @@ client.on('interactionCreate', async interaction => {
         channelId: channel.id,
         guildId: interaction.guild.id,
         adapterCreator: interaction.guild.voiceAdapterCreator,
+        selfMute: false, // منع الميوت الذاتي
+        selfDeaf: false, // منع كتم السماعة الذاتي
       });
 
       const player = createAudioPlayer();
-      const resource = createAudioResource(radioUrl);
+      const resource = createAudioResource(radioUrl, {
+        inlineVolume: true,
+      });
 
       player.play(resource);
       connection.subscribe(player);
