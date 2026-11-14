@@ -224,5 +224,8 @@ async def leave_voice(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("❌ البوت ليس في أي روم صوتي حالياً.", ephemeral=True)
 
+activity = discord.Streaming(name="بث مباشر على Kick", url="https://www.kick.com/cass-sa")
+await bot.change_presence(activity=activity)
+
 keep_alive()
 bot.run(os.environ.get('TOKEN'))
