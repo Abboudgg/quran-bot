@@ -24,7 +24,8 @@ app.listen(PORT, () => {
   console.log(`Your app is listening on port ${PORT}`);
 });
 
-const radioUrl = 'https://backup.qurango.net/radio/yasser_aldosari'; 
+// رابط إذاعة مستقر وثابت لضمان عدم توقف البث
+const radioUrl = 'https://stream.qurancentral.com/yasser-al-dosari-128kbps'; 
 
 const ATHKAR = [
   "✨ **سبحان الله وبحمده، سبحان الله العظيم**",
@@ -88,14 +89,14 @@ client.on('interactionCreate', async interaction => {
       connection.subscribe(player);
 
       player.on(AudioPlayerStatus.Playing, () => {
-        console.log('🎵 Playing Quran Radio');
+        console.log('🎵 Playing Quran Radio successfully');
       });
 
       player.on('error', error => {
         console.error(`Audio Error: ${error.message}`);
       });
 
-      await interaction.editReply('✅ **تم تشغيل إذاعة القرآن الكريم (الشيخ ياسر الدوسري) بنجاح!** 📻🎧');
+      await interaction.editReply('✅ **تم تشغيل إذاعة القرآن الكريم بنجاح!** 📻🎧');
     } catch (error) {
       console.error(error);
       await interaction.editReply('❌ حدث خطأ أثناء تشغيل الإذاعة.');
