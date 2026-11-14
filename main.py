@@ -5,15 +5,44 @@ import requests
 import asyncio
 import os
 import random
-from flask import Flask
+from flask import Flask, render_template_string
 from threading import Thread
 
-# إعداد خادم ويب وهمي عشان Render يعتبره Web Service مجاني وما يقفله
+# إعداد خادم الويب ولوحة التحكم البسيطة
 app = Flask('')
+
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم بوت القرآن والأذكار</title>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: Tahoma, sans-serif; text-align: center; padding: 50px 20px; }
+        .card { background-color: #1e293b; border-radius: 15px; padding: 30px; max-width: 400px; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        h1 { color: #38bdf8; font-size: 22px; }
+        p { color: #94a3b8; }
+        .status { display: inline-block; width: 12px; height: 12px; background-color: #22c55e; border-radius: 50%; margin-left: 5px; }
+        .btn { display: block; width: 100%; background: #0ea5e9; color: white; border: none; padding: 12px; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 15px; font-weight: bold; text-decoration: none; }
+        .btn:hover { background: #0284c7; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🤖 لوحة تحكم بوت ديسكورد</h1>
+        <p>حالة البوت: <span class="status"></span> <strong style="color: #22c55e;">متصل ويدير السيرفر 24/7</strong></p>
+        <hr style="border: 0; border-top: 1px solid #334155; margin: 20px 0;">
+        <p>💡 البوت يقوم حالياً بنشر الأذكار وتشغيل القرآن الكريم على روم ديسكورد.</p>
+        <a href="https://www.kick.com/cass-sa" target="_blank" class="btn">📺 زيارة قناة Kick</a>
+    </div>
+</body>
+</html>
+"""
 
 @app.route('/')
 def home():
-    return "Bot is running 24/7!"
+    return render_template_string(HTML_TEMPLATE)
 
 def run():
     app.run(host='0.0.0.0', port=8080)
@@ -41,7 +70,6 @@ FFMPEG_OPTIONS = {
     'options': '-vn'
 }
 
-# قائمة الأذكار
 ATHKAR_LIST = [
     "سبحان الله وبحمده، سبحان الله العظيم 🌿",
     "لا إله إلا أنت سبحانك إني كنت من الظالمين 🤍",
@@ -128,8 +156,6 @@ async def send_ayah(ctx):
     except:
         await ctx.send("عذراً، تعذر جلب الآية حالياً.")
 
-# تشغيل خادم الويب الوهمي أولاً لتجنب خطأ الـ Port
+# تشغيل السيرفر والبود
 keep_alive()
-
-# تشغيل البوت
 bot.run(os.environ.get('TOKEN'))
