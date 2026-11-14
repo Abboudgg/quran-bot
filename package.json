@@ -1,7 +1,6 @@
 {
   "name": "quran-bot",
   "version": "1.0.0",
-  "description": "Quran Discord Bot 24H",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
